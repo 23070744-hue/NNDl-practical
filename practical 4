@@ -1,0 +1,252 @@
+import tensorflow as tf
+from tensorflow.keras import datasets, layers, models
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, classification_report
+
+# 1. Load Fashion-MNIST Dataset
+(x_train, y_train), (x_test, y_test) = datasets.fashion_mnist.load_data() # 2. Class Names
+class_names = [ 'T-shirt/top', 'Trouser', 'Pullover', 'Dress',
+'Coat',
+'Sandal',
+'Shirt', 'Sneaker', 'Bag', 'Ankle boot'
+]
+
+# 3. Display Dataset Information
+
+print("Dataset Information")
+print("	")
+print("Training images :", x_train.shape)
+print("Training labels :", y_train.shape)
+print("Testing images :", x_test.shape)
+print("Testing labels :", y_test.shape)
+print("Number of classes:", len(class_names))
+
+# 4. Display Sample Images
+plt.figure(figsize=(10, 6))
+for i in range(10):
+    plt.subplot(2, 5, i + 1)
+    plt.imshow(x_train[i], cmap='gray')
+    plt.title(class_names[y_train[i]])
+    plt.axis('off')
+
+plt.suptitle("Fashion-MNIST Sample Images")
+plt.tight_layout()
+plt.show()
+# 5. Normalize Image Data
+
+x_train = x_train / 255.0
+x_test = x_test / 255.0
+
+print("\nImage Information")
+print("	")
+print("Image size :", x_train.shape[1:])
+print("Pixel value : 0 to 1 after normalization")
+
+# 6. Reshape Images for CNN
+
+x_train = x_train.reshape(-1, 28, 28, 1)
+x_test = x_test.reshape(-1, 28, 28, 1)
+
+print("\nAfter Reshaping")
+print("	")
+print("Training images :", x_train.shape)
+print("Testing images :", x_test.shape)
+
+# 7. Build CNN Model
+model = models.Sequential([
+    # Input layer
+    layers.Input(shape=(28, 28, 1)),
+
+    # First Convolution Layer
+    layers.Conv2D(32, (3, 3), activation='relu'),
+
+    # First Pooling Layer
+    layers.MaxPooling2D((2, 2)),
+
+    # Second Convolution Layer
+    layers.Conv2D(64, (3, 3), activation='relu'),
+
+    # Second Pooling Layer
+    layers.MaxPooling2D((2, 2)),
+
+    # Convert feature maps to 1D
+    layers.Flatten(),
+
+    # Fully Connected Layer
+    layers.Dense(64, activation='relu'),
+
+    # Output Layer
+    # 10 neurons = 10 classes
+    layers.Dense(10, activation='softmax')
+])
+
+# 8. Display CNN Model Information
+
+print("\nCNN Model Information")
+print("	")
+
+model.summary()
+# 9. Compile Model
+model.compile(
+optimizer='adam',
+loss='sparse_categorical_crossentropy', metrics=['accuracy']
+)
+print("\nModel compiled successfully.")
+# 10. Train CNN Model
+print("\nTraining CNN Model")
+print("	")
+
+history = model.fit( x_train,
+y_train, epochs=5, batch_size=64,
+validation_split=0.1
+)
+
+# 11. Training Information
+
+print("\nTraining Information")
+print("	")
+
+print(
+"Final Training Accuracy :", history.history['accuracy'][-1]
+)
+
+print(
+"Final Validation Accuracy :", history.history['val_accuracy'][-1]
+)
+
+print(
+"Final Training Loss :", history.history['loss'][-1]
+)
+
+print(
+"Final Validation Loss :", history.history['val_loss'][-1]
+)
+
+# 12. Plot Training and Validation Accuracy
+plt.figure(figsize=(8, 5))
+plt.plot(
+history.history['accuracy'], label='Training Accuracy'
+)
+
+plt.plot(
+history.history['val_accuracy'], label='Validation Accuracy'
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.title("Training and Validation Accuracy")
+plt.legend()
+plt.show()
+
+# 13. Plot Training and Validation Loss
+plt.figure(figsize=(8, 5))
+plt.plot(
+history.history['loss'], label='Training Loss'
+)
+
+plt.plot(
+history.history['val_loss'], label='Validation Loss'
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title("Training and Validation Loss")
+plt.legend()
+plt.show()
+# 14. Evaluate Model on Test Dataset
+test_loss, test_accuracy = model.evaluate(
+x_test, y_test,
+verbose=0
+)
+
+print("\nTest Information")
+print("	")
+
+print("Test Loss\t:", test_loss)
+print("Test Accuracy :", test_accuracy)
+
+print(
+"Test Accuracy (%):", round(test_accuracy * 100, 2), "%"
+)
+# 15. Make Predictions
+y_prediction = model.predict(
+x_test, verbose=0
+)
+
+# Get class with highest probability
+y_pred = np.argmax(
+y_prediction, axis=1
+)
+# 16. Confusion Matrix
+cm = confusion_matrix(
+y_test, y_pred
+)
+plt.figure(figsize=(10, 8))
+sns.heatmap(
+cm, annot=True, fmt='d',
+cmap='Blues', xticklabels=class_names, yticklabels=class_names
+)
+
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Confusion Matrix")
+plt.show()
+
+# 17. Classification Report
+
+print("\nClassification Report")
+print("	")
+
+print(
+classification_report( y_test,
+y_pred, target_names=class_names
+)
+)
+
+# 18. Image Identification
+index = 100
+# Select image
+image = x_test[index]
+
+# Predict image
+prediction = model.predict(
+image.reshape(1, 28, 28, 1), verbose=0
+)
+
+# Get predicted class
+predicted_class = np.argmax(
+prediction
+)
+# Get confidence
+confidence = prediction[0][predicted_class] * 100
+
+print("\nImage Identification")
+print("	")
+
+print(
+"Actual Class\t:", class_names[y_test[index]]
+)
+
+print(
+"Predicted Class :", class_names[predicted_class]
+)
+
+print(
+"Confidence\t:", round(confidence, 2), "%"
+)
+
+# 19. Display Identified Image
+plt.figure(figsize=(5, 5))
+plt.imshow(
+image.reshape(28, 28), cmap='gray'
+)
+
+plt.title(
+"Actual: " + class_names[y_test[index]]
++ "\nPredicted: " + class_names[predicted_class]
+)
+
+plt.axis('off')
+plt.show()
